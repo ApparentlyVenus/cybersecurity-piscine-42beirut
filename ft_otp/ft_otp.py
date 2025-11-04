@@ -2,14 +2,19 @@ import time
 import hmac
 import hashlib
 import argparse
+import getpass
+import os
+import base64
 from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-def validate_key(secret_file):
-    with open(secret_file, 'r') as f:
+def validate_key(input_file):
+    with open(input_file, 'r') as f:
         key = f.read().strip()
     
     if len(key) != 64:
-        print("Error: ket must be 64 hexadecimal characters.")
+        print("Error: key must be 64 hexadecimal characters.")
         exit(1)
 
     try:
@@ -19,13 +24,43 @@ def validate_key(secret_file):
         exit(1)
     return (key)
 
+def save_key(key, output_file):
+    password = getpass.getpass("Enter password: ")
+    salt = os.urandom(16)
+    
+    # mix password + salt to create encryption key
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), 
+                 length = 32, 
+                 salt=salt, 
+                 iterations=100000)
+    encryption_key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+
+    fernet = Fernet(encryption_key)
+    encrypted_key = fernet.encrypt(key.encode())
+
+    with open(output_file, 'wb') as f:
+        f.write(salt + encrypted_key)
+    
+    print("Key successfully saved in", output_file + ".")
+
 def load_key(key_file):
     try:
         with open(key_file, 'rb') as f:
-            encrypted_key = f.read()
-        with open(key_file + ".enc", 'rb') as f:
-            encryption_key = f.read()
+            data = f.read()
         
+        salt = data[:16]
+        encrypted_key = data[16:]
+
+        password = getpass.getpass("Enter password: ")
+
+        # here we should get the same encryption key if we have the same password, 
+        # since we are using the same salt and kdf mixing
+        kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), 
+                    length = 32, 
+                    salt=salt, 
+                    iterations=100000)
+        encryption_key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+
         fernet = Fernet(encryption_key)
         decrypted_key = fernet.decrypt(encrypted_key).decode()
 
@@ -70,7 +105,7 @@ args = parser.parse_args()
 
 if args.g:
     key = validate_key(args.g)
-    save(key)
+    save_key(key, "ft_otp.key")
 
 elif args.k:
     key = load_key(args.k)
