@@ -1,7 +1,6 @@
 import time
 import hmac
 import hashlib
-import sys
 import argparse
 from cryptography.fernet import Fernet
 
@@ -20,17 +19,44 @@ def validate_key(secret_file):
         exit(1)
     return (key)
 
-time_counter = int(time.time() // 30)
-time_bytes = time_counter.to_bytes(8, byteorder='big')
+def load_key(key_file):
+    try:
+        with open(key_file, 'rb') as f:
+            encrypted_key = f.read()
+        with open(key_file + ".enc", 'rb') as f:
+            encryption_key = f.read()
+        
+        fernet = Fernet(encryption_key)
+        decrypted_key = fernet.decrypt(encrypted_key).decode()
 
-hmac_result = hmac.new(key, time_bytes, hashlib.sha1).digest()
+        return decrypted_key
 
-offset = hmac_result[-1] & 0x0f
-truncated = hmac_result[offset:offset+4]
+    except FileNotFoundError:
+        print("Error: Could not find file:", key_file)
+        exit(1)
+    except Exception as e:
+        print("Error: Could not decyrpt key file:", e)
+        exit(1)
 
-code = int.from_bytes(truncated, byteorder='big') & 0x7fffffff
-otp = code % 1000000
 
+def generate_otp(key_hex):
+    key_bytes = bytes.fromhex(key_hex)
+
+    # conver 30 second time intervals to 8 byte array 
+    time_counter = int(time.time() // 30)
+    time_bytes = time_counter.to_bytes(8, byteorder='big')
+
+    hmac_result = hmac.new(key_bytes, time_bytes, hashlib.sha1).digest()
+
+    # dynamic truncation: truncate using the last byte
+    offset = hmac_result[-1] & 0x0f
+    truncated = hmac_result[offset:offset+4]
+
+    # convert to int and get last 6 digits
+    code = int.from_bytes(truncated, byteorder='big') & 0x7fffffff
+    otp = code % 1000000
+
+    return (f"{otp:06d}")
 
 parser = argparse.ArgumentParser()
 
@@ -47,4 +73,15 @@ if args.g:
     save(key)
 
 elif args.k:
-    key = l
+    key = load_key(args.k)
+    otp = generate_otp(key)
+    print(otp)
+
+else:
+    parser.print_help()
+    exit(1)
+
+
+
+
+
