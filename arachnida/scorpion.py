@@ -1,0 +1,66 @@
+from PIL import Image
+from PIL.ExifTags import TAGS
+from datetime import datetime
+import os
+import sys
+import argparse
+
+def extract_metadata(filepath):
+    try:
+        if not os.path.exists(filepath):
+            print("Error: File" + filepath + " not found")
+            return
+    
+        if not filepath.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+            print("Error, format not supported")
+            return
+        img = Image.open(filepath)
+
+        print("\nBASIC ATTRIBUTES\n")
+        print("Filename :", filepath)
+        print("Format :", img.format)
+        print("Size :", img.size)
+        print("File size :", os.path.getsize(filepath), " bytes")
+
+        print("Created :", datetime.fromtimestamp(os.stat(filepath).st_ctime))
+        print("Modified :", datetime.fromtimestamp(os.stat(filepath).st_mtime))
+
+        exif = img._getexif()
+
+        print("\nEXIF DATA\n")
+        if exif:
+            for tag_id, value in exif.items():
+                tag = TAGS.get(tag_id, tag_id)
+                if isinstance(value, bytes):
+                    continue
+                print(tag, ":", value)
+
+        else:
+            print("No exif data found")
+
+        if img.format == "PNG":
+            print("\nPNG info\n")
+            if img.info:
+                for key, value in img.info.items():
+                    print(key, ":", value)
+            else:
+                print("No PNG metadata")
+        
+        img.close()
+
+    except Exception as e:
+        print("failed because:", filepath, ":", e)
+        
+parser = argparse.ArgumentParser()
+parser.add_argument('files', nargs='+', help="image files to analyze")
+args = parser.parse_args()
+
+if not args.files:
+    print("Error: no files specified")
+    print("Usage: python3 scorpion.py FILE1 [FILE2...]")
+    exit(1)
+
+for filepath in args.files:
+    extract_metadata(filepath)
+
+
