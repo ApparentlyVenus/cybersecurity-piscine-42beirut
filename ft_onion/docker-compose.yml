@@ -1,0 +1,14 @@
+services:
+  ft_onion:
+    build: .
+    container_name: ft_onion
+    ports:
+      - "80:80"
+      - "4242:4242"
+    volumes:
+      - ./secrets:/secrets:ro
+      - tor-data:/var/lib/tor
+    restart: unless-stopped
+
+volumes:
+  tor-data:

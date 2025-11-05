@@ -5,9 +5,8 @@ PasswordAuthentication no
 ChallengeResponseAuthentication no
 UsePAM no
 
-Protocol 2
-Ciphers aes256-ctr, aes192-ctr, aes128-ctr
-MACs hmac-sha2-512, hmac-sha2-256
+Ciphers aes256-ctr,aes192-ctr,aes128-ctr
+MACs hmac-sha2-512,hmac-sha2-256
 
 MaxAuthTries 3
 LoginGraceTime 20
