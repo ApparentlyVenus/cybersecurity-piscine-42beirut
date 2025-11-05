@@ -76,7 +76,7 @@ def downloadImgs(url, imgs):
             with open(filepath, "wb") as f:
                 f.write(img_data)
             
-            print("Downloaded:", filepath)
+            print("Downloaded:", filename)
 
         except Exception as e:
             print("Failed to download", img_url, ":", e)
@@ -88,7 +88,7 @@ def spider(url, current_depth):
     visited_urls.add(url)
 
     try:
-        print("Scrapping url:", url)
+        print("Scrapping url:", url, "At depth", current_depth)
         response = rq.get(url, timeout=5)
         response.raise_for_status()
         html = response.text
