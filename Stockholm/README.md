@@ -37,7 +37,7 @@ make run
 /app/Stockholm -v
 
 ```
-## Cleanup Commands
+## Makefile Commands
 
 ``` bash
 make build    # Build Docker image
