@@ -1,0 +1,40 @@
+networks:
+  inquisitor:
+    driver: bridge
+    ipam: 
+      config:
+        - subnet: 172.20.0.0/24
+
+services:
+  router:
+    image: inquisitor-base
+    container_name: router
+    networks:
+      inquisitor:
+        ipv4_address: 172.20.0.3
+    command: tail -f /dev/null
+    cap_add:
+      - NET_ADMIN
+
+  victim:
+    image: inquisitor-base
+    container_name: victim
+    networks:
+      inquisitor:
+        ipv4_address: 172.20.0.10
+    command: tail -f /dev/null
+    cap_add:
+      - NET_ADMIN
+
+  attacker:
+    image: inquisitor-base
+    container_name: attacker
+    networks:
+      inquisitor:
+        ipv4_address: 172.20.0.99
+    command: tail -f /dev/null
+    volumes:
+      - .:/app
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
