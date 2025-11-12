@@ -18,8 +18,11 @@ ping:
 	docker compose exec router ping -c 1 172.20.0.10
 	docker compose exec router ping -c 1 172.20.0.99
 
-router-arp:
-	docker compose exec router arp 
+router:
+	docker compose exec router bash 
 
-victim-arp:
-	docker compose exec router arp 
+victim:
+	docker compose exec victim bash 
+
+attacker:
+	docker compose exec attacker bash
