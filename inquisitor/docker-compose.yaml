@@ -7,14 +7,17 @@ networks:
 
 services:
   router:
-    image: inquisitor-base
+    image: delfer/alpine-ftp-server
     container_name: router
+    environment:
+      - USERS=odana|pass
+      - ADDRESSS=172.20.0.3
     networks:
       inquisitor:
         ipv4_address: 172.20.0.3
     command: tail -f /dev/null
-    cap_add:
-      - NET_ADMIN
+    volumes:
+      - ./ftp_data:/ftp/odana
 
   victim:
     image: inquisitor-base
@@ -38,3 +41,6 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    depends_on:
+      - router
+      - victim

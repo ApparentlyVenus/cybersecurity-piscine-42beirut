@@ -1,28 +1,35 @@
-BASE_IMAGE = inquisitor-base
+build:
+	docker build -t inquisitor-base .
 
-build: 
-	docker build -t $(BASE_IMAGE) .
+up:
+	docker-compose up -d
 
-up: build
-	docker compose up -d
+down:
+	docker-compose down
 
-down: 
-	docker compose down
+clean:
+	docker-compose down
 
-clean: down
-	docker rmi $(BASE_IMAGE)
+fclean: clean
+	docker-compose down -v
+	docker rmi inquisitor-base 2>/dev/null || true
+	rm -rf ftp_data
 
-ping:
-	docker compose exec victim ping -c 1 172.20.0.3
-	docker compose exec victim ping -c 1 172.20.0.99
-	docker compose exec router ping -c 1 172.20.0.10
-	docker compose exec router ping -c 1 172.20.0.99
+re: fclean build
 
-router:
-	docker compose exec router bash 
+demo: build up
+	@echo "\n=== Inquisitor Environment Ready ==="
+	@sleep 2
+	@echo "\nRouter:   172.20.0.3"
+	@echo "Victim:   172.20.0.10"
+	@echo "Attacker: 172.20.0.99"
+	@echo "\nGet MACs:"
+	@echo "  docker exec router ip link show eth0 | grep ether"
+	@echo "  docker exec victim ip link show eth0 | grep ether"
+	@echo "\nEnable forwarding:"
+	@echo "  docker exec attacker sysctl -w net.ipv4.ip_forward=1"
+	@echo "\nRun attack:"
+	@echo "  docker exec -it attacker python3 /app/inquisitor.py 172.20.0.3 <R_MAC> 172.20.0.10 <V_MAC>"
+	@echo ""
 
-victim:
-	docker compose exec victim bash 
-
-attacker:
-	docker compose exec attacker bash
+.PHONY: build up down clean fclean re demo
