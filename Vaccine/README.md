@@ -8,6 +8,11 @@ A tool that detects SQL injection vulnerabilities in a URL. Given a target and a
 parameter, it runs a battery of tests and reports which parameters are injectable,
 the payload that worked, and the database engine behind them.
 
+# Requirements
+
+- Python 3
+- `requests` (`pip install requests`)
+
 # Usage
 
 ```
