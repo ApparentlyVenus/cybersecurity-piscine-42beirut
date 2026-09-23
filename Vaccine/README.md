@@ -52,7 +52,7 @@ time-based delay payload per engine.
 
 # Testing
 
-Tested against a local [SQLi-Labs](https://github.com/skids/sqli-labs) container:
+Tested against a local [SQLi-Labs](https://github.com/Audi-1/sqli-labs) container:
 
 ```
 docker run -d -p 8080:80 acgpiano/sqli-labs
