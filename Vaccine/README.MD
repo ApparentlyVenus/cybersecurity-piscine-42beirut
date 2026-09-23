@@ -72,3 +72,15 @@ POST with custom User-Agent and Cookie headers:
 ./vaccine.py -X POST -D "uname=admin&passwd=admin" \
     -A "Mozilla/5.0" -C "PHPSESSID=test123" "http://localhost:8080/Less-11/"
 ```
+
+Using testasp and testaspnet:
+
+GET requests on both pages
+
+```
+./vaccine.py "http://testaspnet.vulnweb.com/ReadNews.aspx?id=0"
+```
+
+```
+./vaccine.py "http://testasp.vulnweb.com/showforum.asp?id=0"
+```
